@@ -1,0 +1,13 @@
+{
+  "name": "ssh-cli-tool",
+  "version": "1.0.0",
+  "description": "A CLI tool for SSH server connections",
+  "main": "cli.js",
+  "bin": {
+    "ssh-cli-tool": "./cli.js"
+  },
+  "dependencies": {
+    "commander": "^7.0.0",
+    "inquirer": "^8.0.0"
+  }
+}
