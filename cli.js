@@ -330,6 +330,7 @@ function selectSSHConnectionToConnect() {
                 name: 'selectedRemote',
                 message: 'Select an SSH connection to connect to:',
                 choices: [...sshRemotes.map((remote) => `${remote.name} ${chalk.gray(`IP: ${remote.ip} | User: ${remote.user}`)}`), 'Cancel'],
+		pageSize: sshRemotes.length+2
             },
         ])
         .then((answers) => {
