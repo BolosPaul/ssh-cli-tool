@@ -14,7 +14,7 @@ A modern, cross-platform CLI tool for managing SSH connections. Easily add, edit
 
 ## 📋 Requirements
 
-- Node.js >= 12.0.0
+- Node.js >= 14.0.0
 - SSH client installed (available by default on macOS and most Linux distributions)
 
 ## 🔧 Installation

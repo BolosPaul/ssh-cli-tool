@@ -42,8 +42,15 @@ let sshRemotes = [];
 initializeSSHConfig();
 sshRemotes = JSON.parse(fs.readFileSync(sshConfigPath, 'utf-8'));
 
+// Helper function to format remote display string
+function formatRemoteDisplayString(remote) {
+  const portStr = (remote.port && remote.port !== 22) ? `:${remote.port}` : '';
+  return `${remote.name} (${remote.user}@${remote.ip}${portStr})`;
+}
+
 // Function to run the selected SSH command using key-based authentication
-function connectToRemote(ip, user, name, port = 22, keyPath = null) {
+function connectToRemote(ip, user, name, options = {}) {
+  const { port = 22, keyPath = null } = options;
   console.log(chalk.blue(`\n🔐 Connecting to ${chalk.bold(name)}...`));
   console.log(chalk.gray(`   ${user}@${ip}:${port}`));
   
@@ -131,7 +138,7 @@ function addNewSSHConnection() {
         default: '22',
         validate: (input) => {
           const port = parseInt(input);
-          return (port > 0 && port <= 65535) ? true : 'Port must be between 1 and 65535';
+          return (port >= 1 && port <= 65535) ? true : 'Port must be between 1 and 65535';
         },
       },
       {
@@ -171,7 +178,7 @@ function addNewSSHConnection() {
           ])
           .then((copyKeyAnswer) => {
             if (copyKeyAnswer.copyKey) {
-              copySSHKeyToRemote(answers.ip, answers.user, parseInt(answers.port));
+              copySSHKeyToRemote(answers.ip, answers.user, { port: parseInt(answers.port) });
             } else {
               clearScreen();
               mainMenu(); // Return to main menu if the user opts out of copying the key
@@ -190,7 +197,8 @@ function addNewSSHConnection() {
 }
 
 // Function to copy the SSH public key to a remote server
-function copySSHKeyToRemote(ip, user, port = 22) {
+function copySSHKeyToRemote(ip, user, options = {}) {
+  const { port = 22 } = options;
   console.log(chalk.blue(`\n🔑 Copying SSH public key to ${user}@${ip}:${port}...`));
 
   // Build ssh-copy-id arguments
@@ -231,7 +239,7 @@ function editSSHConnection() {
         type: 'list',
         name: 'selectedRemote',
         message: chalk.yellow('Which server do you want to edit?'),
-        choices: [...sshRemotes.map((remote) => `${remote.name} (${remote.user}@${remote.ip}:${remote.port || 22})`), 'Cancel'],
+        choices: [...sshRemotes.map(formatRemoteDisplayString), 'Cancel'],
       },
     ])
     .then((answers) => {
@@ -239,7 +247,7 @@ function editSSHConnection() {
         clearScreen();
         return mainMenu();
       }
-      const selectedRemote = sshRemotes.find((remote) => `${remote.name} (${remote.user}@${remote.ip}:${remote.port || 22})` === answers.selectedRemote);
+      const selectedRemote = sshRemotes.find((remote) => formatRemoteDisplayString(remote) === answers.selectedRemote);
       if (selectedRemote) {
         inquirer
           .prompt([
@@ -268,7 +276,7 @@ function editSSHConnection() {
               default: (selectedRemote.port || 22).toString(),
               validate: (input) => {
                 const port = parseInt(input);
-                return (port > 0 && port <= 65535) ? true : 'Port must be between 1 and 65535';
+                return (port >= 1 && port <= 65535) ? true : 'Port must be between 1 and 65535';
               },
             },
             {
@@ -319,7 +327,7 @@ function removeSSHConnection() {
         type: 'list',
         name: 'selectedRemote',
         message: chalk.red('Which server do you want to remove?'),
-        choices: [...sshRemotes.map((remote) => `${remote.name} (${remote.user}@${remote.ip}:${remote.port || 22})`), 'Cancel'],
+        choices: [...sshRemotes.map(formatRemoteDisplayString), 'Cancel'],
       },
     ])
     .then((answers) => {
@@ -327,7 +335,7 @@ function removeSSHConnection() {
         clearScreen();
         return mainMenu();
       }
-      const indexToRemove = sshRemotes.findIndex((remote) => `${remote.name} (${remote.user}@${remote.ip}:${remote.port || 22})` === answers.selectedRemote);
+      const indexToRemove = sshRemotes.findIndex((remote) => formatRemoteDisplayString(remote) === answers.selectedRemote);
       if (indexToRemove !== -1) {
         const removedServer = sshRemotes[indexToRemove];
         sshRemotes.splice(indexToRemove, 1);
@@ -470,7 +478,7 @@ function selectSSHConnectionToConnect() {
         const selectedRemote = sshRemotes[selectedIndex];
         const { ip, user, name, port, keyPath } = selectedRemote;
         clearScreen(); // Clear the screen before showing connection message
-        connectToRemote(ip, user, name, port, keyPath);
+        connectToRemote(ip, user, name, { port, keyPath });
       } else {
         console.error(chalk.red('Server not found.'));
         clearScreen();
