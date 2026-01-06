@@ -431,6 +431,13 @@ function manageConnectionsMenu() {
     });
 }
 
+// Helper function to format remote display string with key info
+function formatRemoteDisplayStringWithKey(remote) {
+  const portStr = (remote.port && remote.port !== 22) ? `:${remote.port}` : '';
+  const keyStr = remote.keyPath ? chalk.gray(` [key: ${path.basename(remote.keyPath)}]`) : '';
+  return `${remote.name} ${chalk.gray(`(${remote.user}@${remote.ip}${portStr})`)}${keyStr}`;
+}
+
 // Function to select and connect to an SSH connection
 function selectSSHConnectionToConnect() {
   if (sshRemotes.length === 0) {
@@ -443,39 +450,33 @@ function selectSSHConnectionToConnect() {
     return;
   }
 
+  // Create choices with indexes to avoid string matching
+  const choices = [
+    ...sshRemotes.map((remote, index) => ({
+      name: formatRemoteDisplayStringWithKey(remote),
+      value: index
+    })),
+    { name: 'Cancel', value: -1 }
+  ];
+
   inquirer
     .prompt([
       {
         type: 'list',
-        name: 'selectedRemote',
+        name: 'selectedIndex',
         message: 'Select an SSH connection to connect to:',
-        choices: [
-          ...sshRemotes.map((remote) => {
-            const portStr = (remote.port && remote.port !== 22) ? `:${remote.port}` : '';
-            const keyStr = remote.keyPath ? chalk.gray(` [key: ${path.basename(remote.keyPath)}]`) : '';
-            return `${remote.name} ${chalk.gray(`(${remote.user}@${remote.ip}${portStr})`)}${keyStr}`;
-          }), 
-          'Cancel'
-        ],
+        choices: choices,
         pageSize: Math.min(sshRemotes.length + 2, 15)
       },
     ])
     .then((answers) => {
-      if (answers.selectedRemote === 'Cancel') {
+      if (answers.selectedIndex === -1) {
         clearScreen();
         return mainMenu();
       }
       
-      // Find the selected remote by matching the formatted string
-      const selectedIndex = sshRemotes.findIndex((remote, index) => {
-        const portStr = (remote.port && remote.port !== 22) ? `:${remote.port}` : '';
-        const keyStr = remote.keyPath ? chalk.gray(` [key: ${path.basename(remote.keyPath)}]`) : '';
-        const formatted = `${remote.name} ${chalk.gray(`(${remote.user}@${remote.ip}${portStr})`)}${keyStr}`;
-        return formatted === answers.selectedRemote;
-      });
-      
-      if (selectedIndex !== -1) {
-        const selectedRemote = sshRemotes[selectedIndex];
+      const selectedRemote = sshRemotes[answers.selectedIndex];
+      if (selectedRemote) {
         const { ip, user, name, port, keyPath } = selectedRemote;
         clearScreen(); // Clear the screen before showing connection message
         connectToRemote(ip, user, name, { port, keyPath });
